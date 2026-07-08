@@ -77,7 +77,7 @@ fun AboutSupportScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Back",
+                            contentDescription = stringResource(R.string.settings_back_button),
                             tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
@@ -210,7 +210,7 @@ private fun AppInfoHeaderCard(
         modifier = Modifier.fillMaxWidth(),
         shape = SettingsShapes.cardShape,
         color = SettingsColors.cardBackgroundElevated,
-        tonalElevation = 2.dp
+        tonalElevation = Sizes.ElevationLow
     ) {
         Column(
             modifier = Modifier

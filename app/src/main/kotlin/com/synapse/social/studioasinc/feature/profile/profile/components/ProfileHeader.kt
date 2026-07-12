@@ -7,16 +7,18 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
@@ -33,6 +35,9 @@ import androidx.compose.ui.res.stringResource
 import com.synapse.social.studioasinc.R
 import androidx.compose.ui.unit.dp
 import com.synapse.social.studioasinc.feature.shared.components.AnimatedCounter
+import com.synapse.social.studioasinc.feature.shared.components.ButtonVariant
+import com.synapse.social.studioasinc.feature.shared.components.ExpressiveButton
+import com.synapse.social.studioasinc.feature.shared.components.animatedShape
 import com.synapse.social.studioasinc.feature.shared.theme.Spacing
 import com.synapse.social.studioasinc.feature.shared.theme.Sizes
 import com.synapse.social.studioasinc.domain.model.UserStatus
@@ -67,57 +72,158 @@ fun ProfileHeader(
     bioExpanded: Boolean = false,
     onToggleBio: () -> Unit = {}
 ) {
-    val coverHeight = 180.dp
-    val overlap = 70.dp
+    val coverHeight = Sizes.HeightExtraLarge
+    val overlap = Sizes.HeightMedium
     val contentPaddingTop = coverHeight - overlap
-    val avatarSize = 88.dp
+    val avatarSize = Sizes.AvatarHuge
     val avatarPaddingTop = contentPaddingTop - (avatarSize * 0.20f)
-    val textSpacerTop = (avatarSize * 0.70f) + 8.dp
+    val textSpacerTop = (avatarSize * 0.80f) + Spacing.SmallMedium
+    val avatarBorderWidth = Spacing.ExtraSmall
+
+    // Entrance animation
+    val enterTransition = remember { 
+        MutableTransitionState(false).apply { targetState = true }
+    }
 
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        // Cover Photo
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(coverHeight)
-                .clickable(enabled = isOwnProfile) { onCoverPhotoClick() }
+        AnimatedContent(
+            targetState = Unit,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500, delayMillis = 100)) + 
+                scaleIn(initialScale = 0.95f, animationSpec = tween(500))
+            },
+            label = "profileEntrance"
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        color = Color(0xFFE8E8E8)
-                    )
-            )
-            
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color.Transparent,
-                                Color.Black.copy(alpha = 0.3f)
-                            )
-                        )
-                    )
+            CoverPhoto(
+                coverImageUrl = coverImageUrl,
+                scrollOffset = scrollOffset,
+                isOwnProfile = isOwnProfile,
+                onCoverClick = onCoverPhotoClick,
+                height = coverHeight
             )
         }
 
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(top = contentPaddingTop)
-                .background(MaterialTheme.colorScheme.surface)
+        AnimatedContent(
+            targetState = Unit,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500, delayMillis = 200)) + 
+                slideInVertically(initialOffsetY = { it / 2 }) +
+                scaleIn(initialScale = 0.97f, animationSpec = tween(500))
+            },
+            label = "contentEntrance"
         ) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
+                    .padding(top = contentPaddingTop)
+                    .clip(RoundedCornerShape(topStart = Sizes.CornerMassive, topEnd = Sizes.CornerMassive))
+                    .background(MaterialTheme.colorScheme.surface)
+                    .shadow(
+                        elevation = 8.dp,
+                        shape = RoundedCornerShape(topStart = Sizes.CornerMassive, topEnd = Sizes.CornerMassive),
+                        clip = false
+                    )
             ) {
-                InstagramProfileImage(
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = Spacing.Medium)
+                ) {
+                    Spacer(modifier = Modifier.height(textSpacerTop))
+
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.ExtraSmall)
+                        ) {
+                            Text(
+                                text = name ?: username,
+                                style = MaterialTheme.typography.headlineSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+
+                            if (isVerified) {
+                                AnimatedVerifiedBadge()
+                            }
+                        }
+
+                        Text(
+                            text = stringResource(R.string.common_at_username, username),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        if (!nickname.isNullOrBlank()) {
+                            Text(
+                                text = nickname,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(Spacing.Medium))
+
+                        InlineStatsText(
+                            postsCount = postsCount,
+                            followersCount = followersCount,
+                            followingCount = followingCount,
+                            onStatsClick = onStatsClick
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(Spacing.Medium))
+
+                    if (!bio.isNullOrBlank()) {
+                        ExpandableBio(
+                            bio = bio,
+                            expanded = bioExpanded,
+                            onToggle = onToggleBio
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.Medium))
+                    }
+
+                    ProfileActionButtons(
+                        isOwnProfile = isOwnProfile,
+                        isFollowing = isFollowing,
+                        isFollowLoading = isFollowLoading,
+                        onEditProfileClick = onEditProfileClick,
+                        onAddStoryClick = onAddStoryClick,
+                        onFollowClick = onFollowClick,
+                        onMessageClick = onMessageClick,
+                        onMoreClick = onMoreClick
+                    )
+
+                    Spacer(modifier = Modifier.height(Spacing.Medium))
+                }
+            }
+        }
+
+        // Avatar with animation
+        AnimatedContent(
+            targetState = Unit,
+            transitionSpec = {
+                fadeIn(animationSpec = tween(500, delayMillis = 300)) + 
+                scaleIn(initialScale = 0.8f, animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ))
+            },
+            label = "avatarEntrance"
+        ) {
+            Box(
+                modifier = Modifier
+                    .padding(start = Spacing.Medium)
+                    .padding(top = avatarPaddingTop)
+            ) {
+                ProfileImageWithRing(
                     avatar = avatar,
                     size = avatarSize,
                     status = status,
@@ -125,201 +231,76 @@ fun ProfileHeader(
                     isOwnProfile = isOwnProfile,
                     displayName = name ?: username,
                     onClick = onProfileImageClick,
-                    modifier = Modifier
-                        .align(Alignment.TopStart)
-                        .padding(top = avatarPaddingTop)
+                    modifier = Modifier.border(avatarBorderWidth, MaterialTheme.colorScheme.surface, CircleShape)
                 )
-            }
-
-            Spacer(modifier = Modifier.height(textSpacerTop))
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = name ?: username,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f, fill = false)
-                    )
-
-                    if (isVerified) {
-                        InstagramVerifiedBadge()
-                    }
-                }
-
-                if (!bio.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    InstagramBio(
-                        bio = bio,
-                        expanded = bioExpanded,
-                        onToggle = onToggleBio
-                    )
-                }
-
-                if (!nickname.isNullOrBlank()) {
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = nickname,
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InstagramStatsRow(
-                    postsCount = postsCount,
-                    followersCount = followersCount,
-                    followingCount = followingCount,
-                    onStatsClick = onStatsClick
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                InstagramActionButtons(
-                    isOwnProfile = isOwnProfile,
-                    isFollowing = isFollowing,
-                    isFollowLoading = isFollowLoading,
-                    onEditProfileClick = onEditProfileClick,
-                    onAddStoryClick = onAddStoryClick,
-                    onFollowClick = onFollowClick,
-                    onMessageClick = onMessageClick,
-                    onMoreClick = onMoreClick
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
             }
         }
     }
 }
 
 @Composable
-fun InstagramVerifiedBadge(
+fun AnimatedVerifiedBadge(
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .size(20.dp)
-            .background(
-                color = Color(0xFF0095F6),
-                shape = CircleShape
-            )
-    ) {
-        Icon(
-            imageVector = Icons.Default.Check,
-            contentDescription = stringResource(R.string.verified_account),
-            modifier = Modifier
-                .fillMaxSize(0.6f)
-                .align(Alignment.Center),
-            tint = Color.White
-        )
-    }
-}
+    val infiniteTransition = rememberInfiniteTransition(label = "verifiedBadge")
 
-@Composable
-private fun InstagramProfileImage(
-    avatar: String?,
-    size: androidx.compose.ui.unit.Dp,
-    status: UserStatus?,
-    hasStory: Boolean,
-    isOwnProfile: Boolean,
-    displayName: String,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val storyColors = listOf(
-        Color(0xFF833AB4),
-        Color(0xFFE1306C),
-        Color(0xFFF77737),
-        Color(0xFFFCAF45)
-    )
-    
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
+    val scale by infiniteTransition.animateFloat(
+        initialValue = 1f,
+        targetValue = 1.15f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
         ),
-        label = "profileScale"
+        label = "verifiedScale"
     )
 
-    Box(
-        modifier = modifier
-            .size(size)
-            .scale(scale)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-        ) {
-            if (hasStory) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(2.dp)
-                        .background(
-                            brush = Brush.sweepGradient(
-                                colors = storyColors,
-                                center = Offset(0.5f, 0.5f)
-                            ),
-                            shape = CircleShape
-                        )
-                )
-            }
+    val glow by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = 10f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 1500, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "verifiedGlow"
+    )
 
-            Box(
+    Surface(
+        modifier = modifier
+            .size(Sizes.IconLarge)
+            .scale(scale)
+            .shadow(
+                elevation = glow.dp,
+                shape = SevenSidedCookieShape(),
+                clip = false,
+                ambientColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                spotColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+            ),
+        shape = SevenSidedCookieShape(),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.primary
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Icon(
+                imageVector = Icons.Default.Verified,
+                contentDescription = stringResource(R.string.verified_account),
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(if (hasStory) 6.dp else 0.dp)
-                    .clip(CircleShape)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer
-                    )
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            shape = CircleShape
-                        )
-                )
-            }
+                    .size(Sizes.IconSemiMedium)
+                    .graphicsLayer {
+                        rotationZ = if (scale > 1.05f) 15f else 0f
+                    }
+            )
         }
     }
 }
 
 @Composable
-private fun InstagramBio(
+private fun ExpandableBio(
     bio: String,
     expanded: Boolean,
     onToggle: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val shouldCollapse = bio.length > 120
+    val shouldCollapse = bio.length > 150
 
     Column(modifier = modifier) {
         AnimatedContent(
@@ -332,111 +313,44 @@ private fun InstagramBio(
         ) { isExpanded ->
             Text(
                 text = bio,
-                style = MaterialTheme.typography.bodyMedium,
-                maxLines = if (isExpanded || !shouldCollapse) Int.MAX_VALUE else 2,
+                style = MaterialTheme.typography.bodyLarge,
+                maxLines = if (isExpanded || !shouldCollapse) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.clickable(enabled = shouldCollapse) { onToggle() },
-                color = MaterialTheme.colorScheme.onSurface
+                modifier = Modifier
+                    .clickable(enabled = shouldCollapse) { onToggle() }
+                    .animateContentSize()
             )
         }
 
         if (shouldCollapse) {
-            Spacer(modifier = Modifier.height(2.dp))
-            Text(
-                text = if (expanded) "less" else "more",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Color(0xFF737373)
-                ),
-                modifier = Modifier.clickable { onToggle() }
-            )
-        }
-    }
-}
-
-@Composable
-private fun InstagramStatsRow(
-    postsCount: Int,
-    followersCount: Int,
-    followingCount: Int,
-    onStatsClick: (String) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        InstagramStatItem(
-            count = postsCount,
-            label = stringResource(R.string.posts),
-            onClick = { onStatsClick("posts") }
-        )
-        
-        InstagramStatItem(
-            count = followersCount,
-            label = stringResource(R.string.followers),
-            onClick = { onStatsClick("followers") }
-        )
-        
-        InstagramStatItem(
-            count = followingCount,
-            label = stringResource(R.string.following),
-            onClick = { onStatsClick("following") }
-        )
-    }
-}
-
-@Composable
-private fun InstagramStatItem(
-    count: Int,
-    label: String,
-    onClick: () -> Unit
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "statScale"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .scale(scale)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
+            Spacer(modifier = Modifier.height(Spacing.ExtraSmall))
+            AnimatedContent(
+                targetState = expanded,
+                transitionSpec = {
+                    fadeIn(animationSpec = tween(200)) + 
+                    slideInHorizontally(initialOffsetX = { if (expanded) -20 else 20 })
+                },
+                label = "bioToggle"
+            ) { isExpanded ->
+                Text(
+                    text = if (isExpanded) stringResource(R.string.show_less) else stringResource(R.string.see_more),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier
+                        .clickable { onToggle() }
+                        .graphicsLayer {
+                            scaleX = if (isExpanded) 1.05f else 1f
+                            scaleY = if (isExpanded) 1.05f else 1f
+                        }
                 )
             }
-            .padding(horizontal = 8.dp)
-    ) {
-        AnimatedCounter(count = count) { value ->
-            Text(
-                text = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(value),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
         }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF737373)
-        )
     }
 }
 
 @Composable
-private fun InstagramActionButtons(
+private fun ProfileActionButtons(
     isOwnProfile: Boolean,
     isFollowing: Boolean,
     isFollowLoading: Boolean,
@@ -449,169 +363,76 @@ private fun InstagramActionButtons(
 ) {
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.Small),
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isOwnProfile) {
-            AnimatedButton(
-                onClick = onEditProfileClick,
-                modifier = Modifier.weight(1f),
-                text = "Edit Profile"
+            AnimatedExpressiveButton(
+                onClick = onAddStoryClick,
+                text = stringResource(R.string.add_story),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.ButtonHeight),
+                variant = ButtonVariant.Filled
             )
 
-            AnimatedIconButton(
-                onClick = { /* Share */ },
-                modifier = Modifier.weight(0.3f),
-                icon = Icons.Outlined.PersonAdd
+            AnimatedExpressiveButton(
+                onClick = onEditProfileClick,
+                text = stringResource(R.string.edit_profile),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.ButtonHeight),
+                variant = ButtonVariant.FilledTonal
             )
         } else {
-            InstagramFollowButton(
+            ModernAnimatedFollowButton(
                 isFollowing = isFollowing,
                 isLoading = isFollowLoading,
                 onClick = onFollowClick,
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.ButtonHeight)
             )
 
-            AnimatedButton(
+            AnimatedExpressiveButton(
                 onClick = onMessageClick,
-                modifier = Modifier.weight(0.4f),
-                text = "Message",
-                isOutlined = true
+                text = stringResource(R.string.m_message),
+                modifier = Modifier
+                    .weight(1f)
+                    .height(Spacing.ButtonHeight),
+                variant = ButtonVariant.Outlined
             )
         }
-
-        AnimatedIconButton(
-            onClick = onMoreClick,
-            modifier = Modifier.size(36.dp),
-            icon = Icons.Default.MoreHoriz,
-            size = 20
-        )
     }
 }
 
 @Composable
-fun AnimatedButton(
+fun AnimatedExpressiveButton(
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     text: String,
-    isOutlined: Boolean = false
+    modifier: Modifier = Modifier,
+    variant: ButtonVariant = ButtonVariant.Filled
 ) {
     var isPressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    
     val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.96f else 1f,
+        targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessMedium
         ),
         label = "buttonScale"
     )
-    
-    val haptic = LocalHapticFeedback.current
 
-    if (isOutlined) {
-        OutlinedButton(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            },
-            modifier = modifier
-                .height(36.dp)
-                .scale(scale)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        }
-                    )
-                },
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.outlinedButtonColors(),
-            border = ButtonDefaults.outlinedButtonBorder.copy(
-                width = 1.dp,
-                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFDBDBDB))
-            )
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-        }
-    } else {
-        Button(
-            onClick = {
-                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                onClick()
-            },
-            modifier = modifier
-                .height(36.dp)
-                .scale(scale)
-                .pointerInput(Unit) {
-                    detectTapGestures(
-                        onPress = {
-                            isPressed = true
-                            tryAwaitRelease()
-                            isPressed = false
-                        }
-                    )
-                },
-            shape = RoundedCornerShape(8.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0095F6),
-                contentColor = Color.White
-            )
-        ) {
-            Text(
-                text = text,
-                style = MaterialTheme.typography.labelLarge.copy(
-                    fontWeight = FontWeight.SemiBold
-                )
-            )
-        }
-    }
-}
-
-@Composable
-fun AnimatedIconButton(
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
-    size: Int = 18
-) {
-    var isPressed by remember { mutableStateOf(false) }
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.92f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "iconButtonScale"
-    )
-    
-    val rotation by animateFloatAsState(
-        targetValue = if (isPressed) 45f else 0f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "iconButtonRotation"
-    )
-    
-    val haptic = LocalHapticFeedback.current
-
-    IconButton(
+    ExpressiveButton(
         onClick = {
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick()
         },
+        text = text,
         modifier = modifier
             .scale(scale)
-            .graphicsLayer {
-                rotationZ = rotation
-            }
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -620,19 +441,14 @@ fun AnimatedIconButton(
                         isPressed = false
                     }
                 )
-            }
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(size.dp),
-            tint = MaterialTheme.colorScheme.onSurface
-        )
-    }
+            },
+        variant = variant
+    )
 }
 
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun InstagramFollowButton(
+fun ModernAnimatedFollowButton(
     isFollowing: Boolean,
     isLoading: Boolean,
     onClick: () -> Unit,
@@ -640,7 +456,7 @@ fun InstagramFollowButton(
 ) {
     var isPressed by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
-    
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed) 0.95f else 1f,
         animationSpec = spring(
@@ -652,9 +468,9 @@ fun InstagramFollowButton(
 
     val containerColor by animateColorAsState(
         targetValue = if (isFollowing) {
-            Color.Transparent
+            MaterialTheme.colorScheme.surfaceVariant
         } else {
-            Color(0xFF0095F6)
+            MaterialTheme.colorScheme.primary
         },
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "followButtonColor"
@@ -662,22 +478,21 @@ fun InstagramFollowButton(
 
     val contentColor by animateColorAsState(
         targetValue = if (isFollowing) {
-            MaterialTheme.colorScheme.onSurface
+            MaterialTheme.colorScheme.onSurfaceVariant
         } else {
-            Color.White
+            MaterialTheme.colorScheme.onPrimary
         },
         animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "followButtonContentColor"
     )
 
-    val borderColor by animateColorAsState(
-        targetValue = if (isFollowing) {
-            Color(0xFFDBDBDB)
-        } else {
-            Color(0xFF0095F6)
-        },
-        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
-        label = "followButtonBorderColor"
+    val shadowElevation by animateFloatAsState(
+        targetValue = if (isPressed) 0f else 4f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "followButtonShadow"
     )
 
     Button(
@@ -686,8 +501,12 @@ fun InstagramFollowButton(
             onClick()
         },
         modifier = modifier
-            .height(36.dp)
             .scale(scale)
+            .shadow(
+                elevation = shadowElevation.dp,
+                shape = ButtonDefaults.animatedShape(),
+                clip = false
+            )
             .pointerInput(Unit) {
                 detectTapGestures(
                     onPress = {
@@ -698,31 +517,27 @@ fun InstagramFollowButton(
                 )
             },
         enabled = !isLoading,
-        shape = RoundedCornerShape(8.dp),
+        shape = ButtonDefaults.animatedShape(),
         colors = ButtonDefaults.buttonColors(
             containerColor = containerColor,
             contentColor = contentColor,
             disabledContainerColor = containerColor.copy(alpha = 0.7f),
             disabledContentColor = contentColor.copy(alpha = 0.7f)
-        ),
-        border = ButtonDefaults.outlinedButtonBorder.copy(
-            width = 1.dp,
-            brush = androidx.compose.ui.graphics.SolidColor(borderColor)
         )
     ) {
         Box(contentAlignment = Alignment.Center) {
             if (isLoading) {
                 CircularProgressIndicator(
-                    modifier = Modifier.size(18.dp),
-                    strokeWidth = 2.dp,
-                    color = if (isFollowing) MaterialTheme.colorScheme.onSurface else Color.White
+                    modifier = Modifier.size(Sizes.IconMedium),
+                    strokeWidth = Sizes.BorderDefault,
+                    color = contentColor
                 )
             } else {
                 AnimatedContent(
                     targetState = isFollowing,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(200)) + scaleIn(initialScale = 0.8f))
-                            .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.8f))
+                        (fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f))
+                            .togetherWith(fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f))
                     },
                     label = "followButtonContent"
                 ) { following ->
@@ -731,24 +546,149 @@ fun InstagramFollowButton(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         if (following) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(16.dp),
-                                tint = contentColor
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            AnimatedContent(
+                                targetState = true,
+                                transitionSpec = {
+                                    scaleIn(initialScale = 0f, animationSpec = spring(
+                                        dampingRatio = Spring.DampingRatioLowBouncy,
+                                        stiffness = Spring.StiffnessLow
+                                    )) + fadeIn()
+                                },
+                                label = "checkIcon"
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp),
+                                    tint = contentColor
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                            }
                         }
                         Text(
-                            text = if (following) "Following" else "Follow",
-                            style = MaterialTheme.typography.labelLarge.copy(
-                                fontWeight = if (following) FontWeight.Medium else FontWeight.SemiBold
-                            )
+                            text = if (following) stringResource(R.string.following) else stringResource(R.string.follow),
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
                         )
                     }
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun InlineStatsText(
+    postsCount: Int,
+    followersCount: Int,
+    followingCount: Int,
+    onStatsClick: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val formattedPosts = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(postsCount)
+
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.Start,
+        verticalArrangement = Arrangement.Center
+    ) {
+        AnimatedStatRow(
+            count = followersCount,
+            label = stringResource(R.string.followers).lowercase(),
+            onClick = { onStatsClick("followers") }
+        )
+
+        Text(
+            text = stringResource(R.string.common_bullet_separator),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.animateContentSize()
+        )
+
+        AnimatedStatRow(
+            count = followingCount,
+            label = stringResource(R.string.following).lowercase(),
+            onClick = { onStatsClick("following") }
+        )
+
+        Text(
+            text = stringResource(R.string.common_bullet_separator),
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.animateContentSize()
+        )
+
+        AnimatedStatRow(
+            count = postsCount,
+            label = stringResource(R.string.posts).lowercase(),
+            onClick = { onStatsClick("posts") },
+            isPost = true
+        )
+    }
+}
+
+@Composable
+private fun AnimatedStatRow(
+    count: Int,
+    label: String,
+    onClick: () -> Unit,
+    isPost: Boolean = false
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "statRowScale"
+    )
+
+    Row(
+        modifier = Modifier
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
+            .clickable { onClick() },
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        if (isPost) {
+            Text(
+                text = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(count),
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        } else {
+            AnimatedCounter(count = count) { value ->
+                Text(
+                    text = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(value),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(Spacing.ExtraSmall))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -760,16 +700,16 @@ private fun ProfileHeaderPreview() {
             avatar = null,
             status = UserStatus.ONLINE,
             coverImageUrl = null,
-            name = "Abubakr",
-            username = "abo_bakr",
-            nickname = "@abo_bakr",
-            bio = "ولاكسوها الذهب تكشكش زي الركشه وتسجلني في تلفونها ❤️",
+            name = "John Doe",
+            username = "johndoe",
+            nickname = "JD",
+            bio = "Software developer | Tech enthusiast | Coffee lover ☕️ | Building amazing things with code every day.",
             isVerified = true,
             hasStory = true,
-            postsCount = 0,
-            followersCount = 0,
-            followingCount = 0,
-            isOwnProfile = false,
+            postsCount = 142,
+            followersCount = 12345,
+            followingCount = 567,
+            isOwnProfile = true,
             onProfileImageClick = {},
             onEditProfileClick = {},
             onAddStoryClick = {},

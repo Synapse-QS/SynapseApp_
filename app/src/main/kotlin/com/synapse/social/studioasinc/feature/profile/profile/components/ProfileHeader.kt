@@ -5,7 +5,6 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,7 +36,6 @@ import com.synapse.social.studioasinc.feature.shared.components.AnimatedCounter
 import com.synapse.social.studioasinc.feature.shared.theme.Spacing
 import com.synapse.social.studioasinc.feature.shared.theme.Sizes
 import com.synapse.social.studioasinc.domain.model.UserStatus
-import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileHeader(
@@ -181,7 +179,7 @@ fun ProfileHeader(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-            }
+            )
         }
     }
 }
@@ -731,7 +729,13 @@ fun InstagramFollowButton(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         if (following) {
-                            AnimatedIconCheck()
+                            AnimatedIconCheck(
+                                tint = if (following) {
+                                    MaterialTheme.colorScheme.onSurface
+                                } else {
+                                    Color.White
+                                }
+                            )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
                         Text(
@@ -749,7 +753,9 @@ fun InstagramFollowButton(
 
 // Animated Check Icon for Following State
 @Composable
-fun AnimatedIconCheck() {
+fun AnimatedIconCheck(
+    tint: Color = Color.White
+) {
     var isVisible by remember { mutableStateOf(false) }
     
     LaunchedEffect(Unit) {
@@ -781,60 +787,47 @@ fun AnimatedIconCheck() {
             imageVector = Icons.Default.Check,
             contentDescription = null,
             modifier = Modifier.size(16.dp),
-            tint = if (isFollowing) MaterialTheme.colorScheme.onSurface else Color.White
+            tint = tint
         )
     }
 }
 
-// Animated Stats with Haptic Feedback
+// Cover Photo Component
 @Composable
-fun AnimatedStatItem(
-    count: Int,
-    label: String,
-    onClick: () -> Unit
+fun CoverPhoto(
+    coverImageUrl: String?,
+    scrollOffset: Float,
+    isOwnProfile: Boolean,
+    onCoverClick: () -> Unit,
+    height: androidx.compose.ui.unit.Dp
 ) {
-    var isPressed by remember { mutableStateOf(false) }
-    val haptic = LocalHapticFeedback.current
-    
-    val scale by animateFloatAsState(
-        targetValue = if (isPressed) 0.95f else 1f,
-        animationSpec = spring(
-            dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessMedium
-        ),
-        label = "statScale"
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
+    Box(
         modifier = Modifier
-            .scale(scale)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onPress = {
-                        isPressed = true
-                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                        tryAwaitRelease()
-                        isPressed = false
-                        onClick()
-                    }
-                )
-            }
-            .padding(horizontal = 8.dp)
+            .fillMaxWidth()
+            .height(height)
+            .clickable(enabled = isOwnProfile) { onCoverClick() }
     ) {
-        AnimatedCounter(count = count) { value ->
-            Text(
-                text = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(value),
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                ),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFF737373)
+        // Placeholder - Replace with actual cover image
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    color = Color(0xFFE8E8E8)
+                )
+        )
+        
+        // Gradient overlay for better text readability
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(
+                    brush = Brush.verticalGradient(
+                        colors = listOf(
+                            Color.Transparent,
+                            Color.Black.copy(alpha = 0.3f)
+                        )
+                    )
+                )
         )
     }
 }

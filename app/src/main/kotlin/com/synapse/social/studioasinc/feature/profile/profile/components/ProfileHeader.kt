@@ -36,7 +36,6 @@ import com.synapse.social.studioasinc.feature.shared.components.AnimatedCounter
 import com.synapse.social.studioasinc.feature.shared.theme.Spacing
 import com.synapse.social.studioasinc.feature.shared.theme.Sizes
 import com.synapse.social.studioasinc.domain.model.UserStatus
-import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileHeader(
@@ -78,13 +77,34 @@ fun ProfileHeader(
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        CoverPhoto(
-            coverImageUrl = coverImageUrl,
-            scrollOffset = scrollOffset,
-            isOwnProfile = isOwnProfile,
-            onCoverClick = onCoverPhotoClick,
-            height = coverHeight
-        )
+        // Cover Photo
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(coverHeight)
+                .clickable(enabled = isOwnProfile) { onCoverPhotoClick() }
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        color = Color(0xFFE8E8E8)
+                    )
+            )
+            
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(
+                                Color.Transparent,
+                                Color.Black.copy(alpha = 0.3f)
+                            )
+                        )
+                    )
+            )
+        }
 
         Column(
             modifier = Modifier
@@ -729,43 +749,6 @@ fun InstagramFollowButton(
                 }
             }
         }
-    }
-}
-
-@Composable
-fun CoverPhoto(
-    coverImageUrl: String?,
-    scrollOffset: Float,
-    isOwnProfile: Boolean,
-    onCoverClick: () -> Unit,
-    height: androidx.compose.ui.unit.Dp
-) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(height)
-            .clickable(enabled = isOwnProfile) { onCoverClick() }
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    color = Color(0xFFE8E8E8)
-                )
-        )
-        
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.3f)
-                        )
-                    )
-                )
-        )
     }
 }
 

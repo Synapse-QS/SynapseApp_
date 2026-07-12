@@ -80,21 +80,14 @@ fun ProfileHeader(
     val textSpacerTop = (avatarSize * 0.80f) + Spacing.SmallMedium
     val avatarBorderWidth = Spacing.ExtraSmall
 
-    // Entrance animation
-    val enterTransition = remember { 
-        MutableTransitionState(false).apply { targetState = true }
-    }
-
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        AnimatedContent(
-            targetState = Unit,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(500, delayMillis = 100)) + 
-                scaleIn(initialScale = 0.95f, animationSpec = tween(500))
-            },
-            label = "profileEntrance"
+        // Cover photo with fade in
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = tween(500, delayMillis = 100)) +
+                    scaleIn(initialScale = 0.95f, animationSpec = tween(500))
         ) {
             CoverPhoto(
                 coverImageUrl = coverImageUrl,
@@ -105,14 +98,15 @@ fun ProfileHeader(
             )
         }
 
-        AnimatedContent(
-            targetState = Unit,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(500, delayMillis = 200)) + 
-                slideInVertically(initialOffsetY = { it / 2 }) +
-                scaleIn(initialScale = 0.97f, animationSpec = tween(500))
-            },
-            label = "contentEntrance"
+        // Content with slide up
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = tween(500, delayMillis = 200)) +
+                    slideInVertically(
+                        initialOffsetY = { it / 2 },
+                        animationSpec = tween(500)
+                    ) +
+                    scaleIn(initialScale = 0.97f, animationSpec = tween(500))
         ) {
             Box(
                 modifier = Modifier
@@ -206,17 +200,17 @@ fun ProfileHeader(
             }
         }
 
-        // Avatar with animation
-        AnimatedContent(
-            targetState = Unit,
-            transitionSpec = {
-                fadeIn(animationSpec = tween(500, delayMillis = 300)) + 
-                scaleIn(initialScale = 0.8f, animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessMedium
-                ))
-            },
-            label = "avatarEntrance"
+        // Avatar with spring animation
+        AnimatedVisibility(
+            visible = true,
+            enter = fadeIn(animationSpec = tween(500, delayMillis = 300)) +
+                    scaleIn(
+                        initialScale = 0.8f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
         ) {
             Box(
                 modifier = Modifier
@@ -327,8 +321,13 @@ private fun ExpandableBio(
             AnimatedContent(
                 targetState = expanded,
                 transitionSpec = {
-                    fadeIn(animationSpec = tween(200)) + 
-                    slideInHorizontally(initialOffsetX = { if (expanded) -20 else 20 })
+                    (fadeIn(animationSpec = tween(200)) + slideInHorizontally(
+                        initialOffsetX = { if (expanded) -20 else 20 }
+                    )).togetherWith(
+                        fadeOut(animationSpec = tween(200)) + slideOutHorizontally(
+                            targetOffsetX = { if (expanded) 20 else -20 }
+                        )
+                    )
                 },
                 label = "bioToggle"
             ) { isExpanded ->
@@ -546,15 +545,15 @@ fun ModernAnimatedFollowButton(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         if (following) {
-                            AnimatedContent(
-                                targetState = true,
-                                transitionSpec = {
-                                    scaleIn(initialScale = 0f, animationSpec = spring(
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = scaleIn(
+                                    initialScale = 0f,
+                                    animationSpec = spring(
                                         dampingRatio = Spring.DampingRatioLowBouncy,
                                         stiffness = Spring.StiffnessLow
-                                    )) + fadeIn()
-                                },
-                                label = "checkIcon"
+                                    )
+                                ) + fadeIn()
                             ) {
                                 Icon(
                                     imageVector = Icons.Default.Check,
@@ -562,8 +561,8 @@ fun ModernAnimatedFollowButton(
                                     modifier = Modifier.size(16.dp),
                                     tint = contentColor
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
                             }
+                            Spacer(modifier = Modifier.width(4.dp))
                         }
                         Text(
                             text = if (following) stringResource(R.string.following) else stringResource(R.string.follow),

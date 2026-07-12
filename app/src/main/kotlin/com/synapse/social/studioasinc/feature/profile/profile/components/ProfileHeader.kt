@@ -5,6 +5,8 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -16,12 +18,14 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,6 +37,7 @@ import com.synapse.social.studioasinc.feature.shared.components.AnimatedCounter
 import com.synapse.social.studioasinc.feature.shared.theme.Spacing
 import com.synapse.social.studioasinc.feature.shared.theme.Sizes
 import com.synapse.social.studioasinc.domain.model.UserStatus
+import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileHeader(
@@ -74,7 +79,6 @@ fun ProfileHeader(
     Box(
         modifier = modifier.fillMaxWidth()
     ) {
-        // صورة الغلاف
         CoverPhoto(
             coverImageUrl = coverImageUrl,
             scrollOffset = scrollOffset,
@@ -89,7 +93,6 @@ fun ProfileHeader(
                 .padding(top = contentPaddingTop)
                 .background(MaterialTheme.colorScheme.surface)
         ) {
-            // الأفاتار
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -111,13 +114,11 @@ fun ProfileHeader(
 
             Spacer(modifier = Modifier.height(textSpacerTop))
 
-            // المحتوى
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
             ) {
-                // الاسم وعلامة التحقق
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
@@ -138,7 +139,6 @@ fun ProfileHeader(
                     }
                 }
 
-                // البايو
                 if (!bio.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(4.dp))
                     InstagramBio(
@@ -148,7 +148,6 @@ fun ProfileHeader(
                     )
                 }
 
-                // النيك نيم
                 if (!nickname.isNullOrBlank()) {
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
@@ -161,7 +160,6 @@ fun ProfileHeader(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // إحصائيات إنستا
                 InstagramStatsRow(
                     postsCount = postsCount,
                     followersCount = followersCount,
@@ -171,7 +169,6 @@ fun ProfileHeader(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // أزرار إنستا
                 InstagramActionButtons(
                     isOwnProfile = isOwnProfile,
                     isFollowing = isFollowing,
@@ -189,7 +186,7 @@ fun ProfileHeader(
     }
 }
 
-// علامة التحقق بتصميم إنستا بالضبط
+// Verified Badge - Instagram Style
 @Composable
 fun InstagramVerifiedBadge(
     modifier: Modifier = Modifier
@@ -213,7 +210,7 @@ fun InstagramVerifiedBadge(
     }
 }
 
-// صورة الأفاتار بتصميم إنستا بالضبط
+// Profile Image with Instagram Story Ring
 @Composable
 private fun InstagramProfileImage(
     avatar: String?,
@@ -231,12 +228,32 @@ private fun InstagramProfileImage(
         Color(0xFFF77737),
         Color(0xFFFCAF45)
     )
+    
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "profileScale"
+    )
 
     Box(
         modifier = modifier
             .size(size)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
     ) {
-        // حلقة القصة
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -252,7 +269,6 @@ private fun InstagramProfileImage(
                     } else Modifier
                 )
         ) {
-            // التدرج اللوني لحلقة القصة
             if (hasStory) {
                 Box(
                     modifier = Modifier
@@ -268,7 +284,6 @@ private fun InstagramProfileImage(
                 )
             }
 
-            // الأفاتار
             Box(
                 modifier = Modifier
                     .fillMaxSize()
@@ -277,12 +292,7 @@ private fun InstagramProfileImage(
                     .background(
                         color = MaterialTheme.colorScheme.primaryContainer
                     )
-                    .clickable { onClick() }
             ) {
-                // هنا مكان صورة الأفاتار الفعلية
-                // ProfileAvatar(avatar, size - (if (hasStory) 12.dp else 0.dp), displayName)
-                
-                // دائرة مؤقتة للعرض
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -296,7 +306,7 @@ private fun InstagramProfileImage(
     }
 }
 
-// البايو بتصميم إنستا
+// Bio with Expand/Collapse
 @Composable
 private fun InstagramBio(
     bio: String,
@@ -328,7 +338,7 @@ private fun InstagramBio(
         if (shouldCollapse) {
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = if (expanded) "أقل" else "المزيد",
+                text = if (expanded) "less" else "more",
                 style = MaterialTheme.typography.bodyMedium.copy(
                     color = Color(0xFF737373)
                 ),
@@ -338,7 +348,7 @@ private fun InstagramBio(
     }
 }
 
-// إحصائيات إنستا
+// Stats Row
 @Composable
 private fun InstagramStatsRow(
     postsCount: Int,
@@ -378,10 +388,30 @@ private fun InstagramStatItem(
     label: String,
     onClick: () -> Unit
 ) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "statScale"
+    )
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .clickable { onClick() }
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
             .padding(horizontal = 8.dp)
     ) {
         AnimatedCounter(count = count) { value ->
@@ -401,7 +431,7 @@ private fun InstagramStatItem(
     }
 }
 
-// أزرار إنستا
+// Instagram Style Action Buttons with Animations
 @Composable
 private fun InstagramActionButtons(
     isOwnProfile: Boolean,
@@ -420,99 +450,187 @@ private fun InstagramActionButtons(
         verticalAlignment = Alignment.CenterVertically
     ) {
         if (isOwnProfile) {
-            // زر تعديل الملف الشخصي - زي إنستا بالضبط
-            OutlinedButton(
+            AnimatedButton(
                 onClick = onEditProfileClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(36.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
-                    contentColor = MaterialTheme.colorScheme.onSurface
-                ),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp,
-                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFDBDBDB))
-                )
-            ) {
-                Text(
-                    text = "تعديل الملف الشخصي",
-                    style = MaterialTheme.typography.labelLarge.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    fontSize = MaterialTheme.typography.labelLarge.fontSize
-                )
-            }
+                modifier = Modifier.weight(1f),
+                text = "Edit Profile"
+            )
 
-            // زر مشاركة
-            OutlinedButton(
-                onClick = { /* مشاركة */ },
-                modifier = Modifier
-                    .weight(0.3f)
-                    .height(36.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp,
-                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFDBDBDB))
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.PersonAdd,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
+            AnimatedIconButton(
+                onClick = { /* Share */ },
+                modifier = Modifier.weight(0.3f),
+                icon = Icons.Outlined.PersonAdd
+            )
         } else {
-            // زر متابعة - زي إنستا بالضبط
             InstagramFollowButton(
                 isFollowing = isFollowing,
                 isLoading = isFollowLoading,
                 onClick = onFollowClick,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(36.dp)
+                modifier = Modifier.weight(1f)
             )
 
-            // زر رسالة
-            OutlinedButton(
+            AnimatedButton(
                 onClick = onMessageClick,
-                modifier = Modifier
-                    .weight(0.4f)
-                    .height(36.dp),
-                shape = RoundedCornerShape(8.dp),
-                colors = ButtonDefaults.outlinedButtonColors(),
-                border = ButtonDefaults.outlinedButtonBorder.copy(
-                    width = 1.dp,
-                    brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFDBDBDB))
-                )
-            ) {
-                Icon(
-                    imageVector = Icons.Outlined.ChatBubbleOutline,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                    tint = MaterialTheme.colorScheme.onSurface
-                )
-            }
+                modifier = Modifier.weight(0.4f),
+                text = "Message",
+                isOutlined = true
+            )
         }
 
-        // زر المزيد
-        IconButton(
+        AnimatedIconButton(
             onClick = onMoreClick,
-            modifier = Modifier.size(36.dp)
+            modifier = Modifier.size(36.dp),
+            icon = Icons.Default.MoreHoriz,
+            size = 20.dp
+        )
+    }
+}
+
+// Animated Button with Press Effect
+@Composable
+fun AnimatedButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    text: String,
+    isOutlined: Boolean = false
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.96f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "buttonScale"
+    )
+    
+    val haptic = LocalHapticFeedback.current
+
+    if (isOutlined) {
+        OutlinedButton(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            },
+            modifier = modifier
+                .height(36.dp)
+                .scale(scale)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        }
+                    )
+                },
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.outlinedButtonColors(),
+            border = ButtonDefaults.outlinedButtonBorder.copy(
+                width = 1.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(Color(0xFFDBDBDB))
+            )
         ) {
-            Icon(
-                imageVector = Icons.Default.MoreHoriz,
-                contentDescription = null,
-                modifier = Modifier.size(20.dp),
-                tint = MaterialTheme.colorScheme.onSurface
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                )
+            )
+        }
+    } else {
+        Button(
+            onClick = {
+                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                onClick()
+            },
+            modifier = modifier
+                .height(36.dp)
+                .scale(scale)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onPress = {
+                            isPressed = true
+                            tryAwaitRelease()
+                            isPressed = false
+                        }
+                    )
+                },
+            shape = RoundedCornerShape(8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = Color(0xFF0095F6),
+                contentColor = Color.White
+            )
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.SemiBold
+                )
             )
         }
     }
 }
 
-// زر المتابعة بتصميم إنستا
+// Animated Icon Button
+@Composable
+fun AnimatedIconButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    size: Int = 18
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.92f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "iconButtonScale"
+    )
+    
+    val rotation by animateFloatAsState(
+        targetValue = if (isPressed) 45f else 0f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "iconButtonRotation"
+    )
+    
+    val haptic = LocalHapticFeedback.current
+
+    IconButton(
+        onClick = {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            onClick()
+        },
+        modifier = modifier
+            .scale(scale)
+            .graphicsLayer {
+                rotationZ = rotation
+            }
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    }
+                )
+            }
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            modifier = Modifier.size(size.dp),
+            tint = MaterialTheme.colorScheme.onSurface
+        )
+    }
+}
+
+// Instagram Follow Button with Advanced Animation
 @Composable
 fun InstagramFollowButton(
     isFollowing: Boolean,
@@ -520,7 +638,17 @@ fun InstagramFollowButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    var isPressed by remember { mutableStateOf(false) }
     val haptic = LocalHapticFeedback.current
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "followButtonScale"
+    )
 
     val containerColor by animateColorAsState(
         targetValue = if (isFollowing) {
@@ -528,7 +656,7 @@ fun InstagramFollowButton(
         } else {
             Color(0xFF0095F6)
         },
-        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "followButtonColor"
     )
 
@@ -538,7 +666,7 @@ fun InstagramFollowButton(
         } else {
             Color.White
         },
-        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "followButtonContentColor"
     )
 
@@ -548,7 +676,7 @@ fun InstagramFollowButton(
         } else {
             Color(0xFF0095F6)
         },
-        animationSpec = tween(durationMillis = 200, easing = FastOutSlowInEasing),
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
         label = "followButtonBorderColor"
     )
 
@@ -557,7 +685,18 @@ fun InstagramFollowButton(
             haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             onClick()
         },
-        modifier = modifier,
+        modifier = modifier
+            .height(36.dp)
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        tryAwaitRelease()
+                        isPressed = false
+                    }
+                )
+            },
         enabled = !isLoading,
         shape = RoundedCornerShape(8.dp),
         colors = ButtonDefaults.buttonColors(
@@ -582,21 +721,121 @@ fun InstagramFollowButton(
                 AnimatedContent(
                     targetState = isFollowing,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(150)) + scaleIn(initialScale = 0.8f))
-                            .togetherWith(fadeOut(animationSpec = tween(150)) + scaleOut(targetScale = 0.8f))
+                        (fadeIn(animationSpec = tween(200)) + scaleIn(initialScale = 0.8f))
+                            .togetherWith(fadeOut(animationSpec = tween(200)) + scaleOut(targetScale = 0.8f))
                     },
                     label = "followButtonContent"
                 ) { following ->
-                    Text(
-                        text = if (following) "متابَع" else "متابعة",
-                        style = MaterialTheme.typography.labelLarge.copy(
-                            fontWeight = if (following) FontWeight.Medium else FontWeight.SemiBold
-                        ),
-                        fontSize = MaterialTheme.typography.labelLarge.fontSize
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        if (following) {
+                            AnimatedIconCheck()
+                            Spacer(modifier = Modifier.width(4.dp))
+                        }
+                        Text(
+                            text = if (following) "Following" else "Follow",
+                            style = MaterialTheme.typography.labelLarge.copy(
+                                fontWeight = if (following) FontWeight.Medium else FontWeight.SemiBold
+                            )
+                        )
+                    }
                 }
             }
         }
+    }
+}
+
+// Animated Check Icon for Following State
+@Composable
+fun AnimatedIconCheck() {
+    var isVisible by remember { mutableStateOf(false) }
+    
+    LaunchedEffect(Unit) {
+        isVisible = true
+    }
+    
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = scaleIn(
+            initialScale = 0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ) + fadeIn(
+            animationSpec = tween(200)
+        ),
+        exit = scaleOut(
+            targetScale = 0f,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            )
+        ) + fadeOut(
+            animationSpec = tween(200)
+        )
+    ) {
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            modifier = Modifier.size(16.dp),
+            tint = if (isFollowing) MaterialTheme.colorScheme.onSurface else Color.White
+        )
+    }
+}
+
+// Animated Stats with Haptic Feedback
+@Composable
+fun AnimatedStatItem(
+    count: Int,
+    label: String,
+    onClick: () -> Unit
+) {
+    var isPressed by remember { mutableStateOf(false) }
+    val haptic = LocalHapticFeedback.current
+    
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.95f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessMedium
+        ),
+        label = "statScale"
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .scale(scale)
+            .pointerInput(Unit) {
+                detectTapGestures(
+                    onPress = {
+                        isPressed = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        tryAwaitRelease()
+                        isPressed = false
+                        onClick()
+                    }
+                )
+            }
+            .padding(horizontal = 8.dp)
+    ) {
+        AnimatedCounter(count = count) { value ->
+            Text(
+                text = com.synapse.social.studioasinc.core.util.NumberFormatter.formatCount(value),
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color(0xFF737373)
+        )
     }
 }
 
@@ -608,7 +847,7 @@ private fun ProfileHeaderPreview() {
             avatar = null,
             status = UserStatus.ONLINE,
             coverImageUrl = null,
-            name = "أبوبكر",
+            name = "Abubakr",
             username = "abo_bakr",
             nickname = "@abo_bakr",
             bio = "ولاكسوها الذهب تكشكش زي الركشه وتسجلني في تلفونها ❤️",
@@ -617,7 +856,7 @@ private fun ProfileHeaderPreview() {
             postsCount = 0,
             followersCount = 0,
             followingCount = 0,
-            isOwnProfile = true,
+            isOwnProfile = false,
             onProfileImageClick = {},
             onEditProfileClick = {},
             onAddStoryClick = {},

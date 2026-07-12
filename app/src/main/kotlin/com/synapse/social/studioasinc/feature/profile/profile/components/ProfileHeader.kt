@@ -36,6 +36,7 @@ import com.synapse.social.studioasinc.feature.shared.components.AnimatedCounter
 import com.synapse.social.studioasinc.feature.shared.theme.Spacing
 import com.synapse.social.studioasinc.feature.shared.theme.Sizes
 import com.synapse.social.studioasinc.domain.model.UserStatus
+import kotlinx.coroutines.delay
 
 @Composable
 fun ProfileHeader(
@@ -179,12 +180,11 @@ fun ProfileHeader(
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
-            )
+            }
         }
     }
 }
 
-// Verified Badge - Instagram Style
 @Composable
 fun InstagramVerifiedBadge(
     modifier: Modifier = Modifier
@@ -208,7 +208,6 @@ fun InstagramVerifiedBadge(
     }
 }
 
-// Profile Image with Instagram Story Ring
 @Composable
 private fun InstagramProfileImage(
     avatar: String?,
@@ -255,17 +254,6 @@ private fun InstagramProfileImage(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .then(
-                    if (hasStory) {
-                        Modifier.shadow(
-                            elevation = 0.dp,
-                            shape = CircleShape,
-                            clip = false,
-                            ambientColor = Color.Transparent,
-                            spotColor = Color.Transparent
-                        )
-                    } else Modifier
-                )
         ) {
             if (hasStory) {
                 Box(
@@ -304,7 +292,6 @@ private fun InstagramProfileImage(
     }
 }
 
-// Bio with Expand/Collapse
 @Composable
 private fun InstagramBio(
     bio: String,
@@ -346,7 +333,6 @@ private fun InstagramBio(
     }
 }
 
-// Stats Row
 @Composable
 private fun InstagramStatsRow(
     postsCount: Int,
@@ -429,7 +415,6 @@ private fun InstagramStatItem(
     }
 }
 
-// Instagram Style Action Buttons with Animations
 @Composable
 private fun InstagramActionButtons(
     isOwnProfile: Boolean,
@@ -479,12 +464,11 @@ private fun InstagramActionButtons(
             onClick = onMoreClick,
             modifier = Modifier.size(36.dp),
             icon = Icons.Default.MoreHoriz,
-            size = 20.dp
+            size = 20
         )
     }
 }
 
-// Animated Button with Press Effect
 @Composable
 fun AnimatedButton(
     onClick: () -> Unit,
@@ -570,7 +554,6 @@ fun AnimatedButton(
     }
 }
 
-// Animated Icon Button
 @Composable
 fun AnimatedIconButton(
     onClick: () -> Unit,
@@ -628,7 +611,6 @@ fun AnimatedIconButton(
     }
 }
 
-// Instagram Follow Button with Advanced Animation
 @Composable
 fun InstagramFollowButton(
     isFollowing: Boolean,
@@ -729,12 +711,11 @@ fun InstagramFollowButton(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         if (following) {
-                            AnimatedIconCheck(
-                                tint = if (following) {
-                                    MaterialTheme.colorScheme.onSurface
-                                } else {
-                                    Color.White
-                                }
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = contentColor
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                         }
@@ -751,48 +732,6 @@ fun InstagramFollowButton(
     }
 }
 
-// Animated Check Icon for Following State
-@Composable
-fun AnimatedIconCheck(
-    tint: Color = Color.White
-) {
-    var isVisible by remember { mutableStateOf(false) }
-    
-    LaunchedEffect(Unit) {
-        isVisible = true
-    }
-    
-    AnimatedVisibility(
-        visible = isVisible,
-        enter = scaleIn(
-            initialScale = 0f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        ) + fadeIn(
-            animationSpec = tween(200)
-        ),
-        exit = scaleOut(
-            targetScale = 0f,
-            animationSpec = spring(
-                dampingRatio = Spring.DampingRatioLowBouncy,
-                stiffness = Spring.StiffnessLow
-            )
-        ) + fadeOut(
-            animationSpec = tween(200)
-        )
-    ) {
-        Icon(
-            imageVector = Icons.Default.Check,
-            contentDescription = null,
-            modifier = Modifier.size(16.dp),
-            tint = tint
-        )
-    }
-}
-
-// Cover Photo Component
 @Composable
 fun CoverPhoto(
     coverImageUrl: String?,
@@ -807,7 +746,6 @@ fun CoverPhoto(
             .height(height)
             .clickable(enabled = isOwnProfile) { onCoverClick() }
     ) {
-        // Placeholder - Replace with actual cover image
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -816,7 +754,6 @@ fun CoverPhoto(
                 )
         )
         
-        // Gradient overlay for better text readability
         Box(
             modifier = Modifier
                 .fillMaxSize()
